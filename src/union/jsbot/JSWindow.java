@@ -208,6 +208,18 @@ public class JSWindow {
 		return 0;
 	}
 
+    /**
+     * Возвращает заголовок окна
+     *
+     * @return заголовок окна
+     */
+    public String getCaption() {
+        if (wdg()!=null)
+            return wdg().cap.text;
+        else
+            return "";
+    }
+
 	private Window wdg() {
 		Widget wdg = UI.instance.getWidget(remote_id);
 		if (wdg instanceof Window) {

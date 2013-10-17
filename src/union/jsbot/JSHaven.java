@@ -1,26 +1,12 @@
 package union.jsbot;
 
-import haven.Audio;
-import haven.BuddyWnd;
-import haven.Charlist;
-import haven.Coord;
-import haven.LoginScreen;
-import haven.MainFrame;
-import haven.Music;
-import haven.Partyview;
-import haven.Resource;
-import haven.UI;
-import haven.Window;
+import haven.*;
+import union.*;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-
-import union.APXUtils;
-import union.JSBot;
-import union.JSBotUtils;
-import union.JSGUI;
-import union.JSThread;
+import java.io.IOException;
 
 public class JSHaven {
 	private static Coord unWrapCoord(Object obj) {
@@ -422,6 +408,15 @@ public class JSHaven {
 		JSBotUtils.isBoxAct(name, pos, 1);
 	}
 
+    /**
+     * Перемещает в инвентарь игрока вещи (столько, сколько влезет в инвентарь) из окна постройки
+     * @param name имя окна постройки
+     * @param pos позиция блока с ресурсами
+     */
+    public static void jTransferBuildItems(String name, int pos) {
+        JSBotUtils.isBoxAct(name, pos, 2);
+    }
+
 	/**
 	 * Проверяет открыто ли окно
 	 * @param wnd имя окна
@@ -599,6 +594,11 @@ public class JSHaven {
 	public static int jGetHungry() {
 		return JSBotUtils.playerHungry;
 	}
+
+    public static IMeter jGetHun() {
+        return JSBotUtils.currHun;
+    }
+
 
 	/**
 	 * Возвращает софтХП игрока
@@ -857,22 +857,21 @@ public class JSHaven {
 
 	/**
 	 * Функция ждет появления указанного окна и возвращает его, если оно появилось за время таймаута
-	 * @param name name имя ока
+	 * @param name name имя окна
 	 * @param timeout максимальное время ожидания
 	 * @return окно
 	 */
 	public static JSWindow jWaitNewWindow(String name, int timeout) {
 		int curr = 0; if(timeout == 0) timeout = 10000;
 		while(curr < timeout) {
-			if (JSBotUtils.lastCreatedWindow != null &&
-				JSBotUtils.lastCreatedWindow.cap.text != null &&
-				JSBotUtils.lastCreatedWindow.cap.text.equals(name)) {
-				
-				int rid = UI.instance.getId(JSBotUtils.lastCreatedWindow);
-				if (!(UI.instance.getWidget(rid) instanceof Window)) continue;
-				JSWindow ret = new JSWindow(rid);
-				JSBotUtils.lastCreatedWindow = null;
-				return ret;
+			if (JSBotUtils.lastCreatedWindow != null && JSBotUtils.lastCreatedWindow.cap.text != null) {
+                    if (JSBotUtils.lastCreatedWindow.cap.text.equals(name)||name.equals("")) {
+        				int rid = UI.instance.getId(JSBotUtils.lastCreatedWindow);
+		        		if (!(UI.instance.getWidget(rid) instanceof Window)) continue;
+				        JSWindow ret = new JSWindow(rid);
+				        JSBotUtils.lastCreatedWindow = null;
+				        return ret;
+                    }
 			}
 			if (!JSBot.Sleep(25)) return null;
 			curr += 25;
@@ -1086,6 +1085,15 @@ public class JSHaven {
 		JSBotUtils.mapAbsClick(c.x, c.y, btn, mod);
 	}
 
+    public static void jAddMovequene(Object coord) {
+        Coord c = unWrapCoord(coord);
+        JSBotUtils.mapAddMovequene(c.x, c.y);
+    }
+
+    public static void jClearMovequene() {
+        JSBotUtils.mapClearMovequene();
+    }
+
 	/**
 	 * Передвигается на указанное количество тайлов относительно игрока
 	 * 
@@ -1105,6 +1113,39 @@ public class JSHaven {
 	public static Coord jMyCoords() {
 		return JSBotUtils.MyCoord();
 	}
+
+    /**
+     * Возвращает координаты минимапы игрока в текущей сессии
+     *
+     * @return координаты минимапы игрока в текущей сессии
+     */
+    public static Coord jMyCoordsMMap() {
+        return JSBotUtils.MyCoordMMap();
+    }
+
+    /**
+     * Возвращает координаты игрока относительно начала минимапы
+     *
+     * @return координаты игрока относительно начала минимапы
+     */
+    public static Coord jMyCoordsOnMMap() {
+        return JSBotUtils.MyCoordOnMMap();
+    }
+
+    /**
+     * Возвращает координаты тайла игрока относительно начала минимапы
+     *
+     * @return координаты тайла игрока относительно начала минимапы
+     */
+    public static Coord jMyCoordsOnMMapT() {
+        return JSBotUtils.MyCoordOnMMapT();
+    }
+
+    public static void jSaveMarker(Object mp, Object mrk, String name, String str) throws IOException {
+        Coord c1 = unWrapCoord(mp);
+        Coord c2 = unWrapCoord(mrk);
+        JSBotUtils.SaveMarker(c1, c2, name, str);
+    }
 
 	/**
 	 * Взаимодествие предмета в руках (на курсоре) с точкой на карте (в
@@ -1153,6 +1194,22 @@ public class JSHaven {
 		JSBotUtils.mapPlace(c.x, c.y, btn, mod);
 	}
 
+    /**
+     * Поставить объект который хотим построить в указанные абсолютные координаты
+     *
+     * @param coord
+     *            координаты
+     * @param btn
+     *            кнопка мыши (1 - левая, 3 - правая)
+     * @param mod
+     *            модификатор клавиатуры (1 - shift; 2 - ctrl; 4 - alt; 8 -
+     *            win)
+     */
+    public static void jPlaceAbs(Object coord, int btn, int mod) {
+        Coord c = unWrapCoord(coord);
+        JSBotUtils.mapPlaceAbs(c.x, c.y, btn, mod);
+    }
+
 	/**
 	 * Проверяет можно ли дойти до указанной точки напрямую
 	 * 
@@ -1163,6 +1220,30 @@ public class JSHaven {
 	public static boolean jIsPathFree(Object rc) {
 		return APXUtils.isPathFree(unWrapCoord(rc));
 	}
+
+    /**
+     * Проверяет можно ли дойти до указанной точки используя PF
+     *
+     * @param rc
+     *            Абсолютные координаты точки
+     * @return true если можно пройти  используя PF
+     */
+    public static boolean jIsPFPathFree(Object rc) {
+        return (APXUtils._pf_find_path(unWrapCoord(rc),0).size()>0);
+    }
+
+
+    /**
+     * Проверяет можно ли дойти до указанной точки используя PF
+     *
+     *
+     * @param rc
+     *            Абсолютные координаты точки
+     * @return true если можно пройти  используя PF
+     */
+    public static Object[] jGetPFPath(Object rc) {
+        return APXUtils._pf_find_path(unWrapCoord(rc),0).toArray();
+    }
 
 	/**
 	 * 'Просит' игрока выбрать объект мышкой, пользователь должен щелкнуть
@@ -1186,6 +1267,21 @@ public class JSHaven {
 		}
 		return null;
 	}
+
+
+    public static Coord jSelectTile(String text) {
+        if (UI.instance.mapview == null)
+            return null;
+        JSBotUtils.slenPrint(text);
+        UI.instance.mapview.tileSelecting = true;
+        while (UI.instance.mapview.tileSelecting) {
+            if (!JSBot.Sleep(100)) return null;
+        }
+        if (UI.instance.mapview.tileUnderMouse != null) {
+            return UI.instance.mapview.tileUnderMouse;
+        }
+        return null;
+    }
 
 	/**
 	 * Возвращает объект JSGob или null с указанным именем ресурса в

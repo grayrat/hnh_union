@@ -2,19 +2,22 @@ package union;
 
 import haven.*;
 import haven.INIFile.Pair;
-
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import java.net.*;
-import java.util.*;
 import union.AStar.Location;
 import union.CustomMenu.MenuElement;
 import union.CustomMenu.MenuElemetUseListener;
 import union.CustomMenu.MenuTree;
-import union.jsbot.JSHaven;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
+import java.util.Vector;
 
 public class APXUtils {
 	static {
@@ -31,15 +34,17 @@ public class APXUtils {
 	 * Path Finding Section
 	 */
 	public static final int PF_MAP_CELL_FREE = 1;
-	public static final int PF_MAP_CELL_NOT_PASSABLE = 4;
+	public static final int PF_MAP_CELL_NOT_PASSABLE = 7;
+    public static final int PF_MAP_CELL_FULL_NOT_PASSABLE = 8;
 
 	private static int[][] _pf_map; // CoefMap
-	private static int _pf_map_rad = 40; // Radius of map
+	private static int _pf_map_rad = 39; // Radius of map
 	private static int _pf_tilesize = 11; // Tilesize
 	private static int _pf_dim = 0; // Dimension (full length of array)
 	public static boolean _pf_draw_map = true;// Draw PF Map on screen
 	private static Coord _pf_last_coord;
 	private static boolean _pf_size_changed = false;
+    private static Coord _pf_centre;
 
 	public static int[][] PF_Map() {
 		return _pf_map;
@@ -71,25 +76,25 @@ public class APXUtils {
 	// Converts real coords to _pf_map coord (final)
 	public static Coord _pf_real2map(Coord c) {
 		Coord c_til = MapView.tilify(c);
-		Coord l_til = MapView.tilify(UI.instance.mapview.myLastCoord);
+		Coord l_til = MapView.tilify(_pf_centre);
 		Coord new_c = c_til.sub(l_til).div(MCache.tileSize);
 		return new_c.add(_pf_map_rad + 1, _pf_map_rad + 1);
 	}
 
 	// Converts _pf_map coord to real coord
 	public static Coord _pf_map2real(Coord c) {
-		Coord l_til = MapView.tilify(UI.instance.mapview.myLastCoord);
+		Coord l_til = MapView.tilify(_pf_centre);
 		return c.sub(_pf_map_rad + 1).mul(MCache.tileSize).add(l_til);
 	}
 
 	// Converts _pf_map coord to real coord
 	public static Coord _pf_map2real_stored(Coord c) {
-		Coord l_til = MapView.tilify(_pf_last_coord);
+		Coord l_til = MapView.tilify(_pf_centre);
 		return c.sub(_pf_map_rad + 1).mul(_pf_tilesize).add(l_til);
 	}
 
 	public static Coord _pf_get_ltmc() {
-		Coord rel = UI.instance.mapview.myLastCoord.div(_pf_tilesize);
+		Coord rel = _pf_centre.div(_pf_tilesize);
 		return rel.sub(new Coord(_pf_map_rad + 1, _pf_map_rad + 1));
 	}
 
@@ -97,8 +102,8 @@ public class APXUtils {
 	private static boolean _pf_in_array(Coord it) {
 		if (_pf_map == null)
 			return false;
-		return it.x < _pf_map[0].length && it.y < _pf_map.length && it.x > 0
-				&& it.y > 0;
+		return it.x < _pf_map[0].length && it.y < _pf_map.length && it.x >= 0
+				&& it.y >= 0;
 	}
 
 	// Mark array as non-passable (real coord input)
@@ -109,7 +114,9 @@ public class APXUtils {
 		// Coord s2 = new Coord(end.x, end.y);
 		// Coord st_trans = start.sub((start.div(11)).mul(11));
 		// Coord en_trans = end.sub((end.div(11)).mul(11));
-		if (s1.x > 6)
+
+        /*
+        if (s1.x > 6)
 			start.x += 6;
 		if (s1.y > 6)
 			start.y += 6;
@@ -118,6 +125,7 @@ public class APXUtils {
 			end.x -= 6;
 		if (s2.y < 4)
 			end.y -= 6;
+        */
 
 		// if (s1.x > s2.x) s2.x = s1.x + 1;
 		// if (s1.y > s2.y) s2.y = s1.y + 1;
@@ -125,11 +133,29 @@ public class APXUtils {
 		Coord p1 = _pf_real2map(start);
 		Coord p2 = _pf_real2map(end);
 
-		if (!_pf_in_array(p1) || !_pf_in_array(p2))
+        /*
+        if (p1.x<0) p1.x = 0;
+        if (p1.y<0) p1.y = 0;
+        if (p2.x<0) p2.x = 0;
+        if (p2.y<0) p2.y = 0;
+        if (p1.x >= _pf_map[0].length) p1.x = _pf_map[0].length - 1;
+        if (p2.x >= _pf_map[0].length) p2.x = _pf_map[0].length - 1;
+        if (p1.y >= _pf_map.length) p1.y = _pf_map.length - 1;
+        if (p2.y >= _pf_map.length) p2.y = _pf_map.length - 1;
+        */
+        /*
+		if (!_pf_in_array(p1) || !_pf_in_array(p2)) {
+            System.out.print(p1);
+            System.out.print(p2);
+            System.out.println(_pf_map.length);
 			return;
+        }
+        */
 		for (int i = p1.x; i <= p2.x; i++)
 			for (int j = p1.y; j <= p2.y; j++)
-				_pf_map[i][j] = AStar.Constants.DIAGONAL_NON_PASSABLE;
+                if (_pf_in_array(new Coord(i,j)))
+                    if(i==0||i==_pf_map[0].length - 1||j==0||j==_pf_map.length - 1) _pf_map[i][j] = AStar.Constants.FULL_NON_PASSABLE;
+                    else _pf_map[i][j] = AStar.Constants.DIAGONAL_NON_PASSABLE;
 	}
 
 	// Mark areay as non-passable (real coord input)
@@ -137,11 +163,12 @@ public class APXUtils {
 		Coord p1 = _pf_real2map(start);
 		Coord p2 = _pf_real2map(end);
 
-		if (!_pf_in_array(p1) || !_pf_in_array(p2))
-			return;
+		//if (!_pf_in_array(p1) || !_pf_in_array(p2))
+		//	return;
 		for (int i = p1.x; i <= p2.x; i++)
 			for (int j = p1.y; j <= p2.y; j++)
-				_pf_map[i][j] = PF_MAP_CELL_FREE;
+                if (_pf_in_array(new Coord(i,j)))
+				    _pf_map[i][j] = PF_MAP_CELL_FREE;
 	}
 
 	// Mark areay as non-passable (real coord input)
@@ -179,13 +206,14 @@ public class APXUtils {
 		_pf_compute(id_if_needed);
 		/*if (unmark_last_point)
 			_pf_unmark_area(rc, new Coord(1, 1).add(rc));*/
-		Coord pc = new Coord(_pf_map_rad + 1, _pf_map_rad + 1);
+		//Coord pc = new Coord(_pf_map_rad + 1, _pf_map_rad + 1);
+        Coord pc = _pf_real2map(JSBotUtils.MyCoord());
 		Coord ec = _pf_real2map(rc);
 		AStar a = new AStar(_pf_map, new Location(pc.x, pc.y), new Location(
 				ec.x, ec.y));
-
 		ArrayList<Coord> path = new ArrayList<Coord>();
 		Vector v = a.AStarSearch(null);
+        //System.out.print(v);
 		if (v == null)
 			return new ArrayList<Coord>();
 		for (Object obj : v) {
@@ -255,15 +283,92 @@ public class APXUtils {
 	// Fill _pf_map array
 	public static void _pf_compute(int id_if_needed) {
 		_pf_last_coord = UI.instance.mapview.myLastCoord;
-		MapView mw = UI.instance.mapview;
+        _pf_centre = MapView.tilify(MapView.tilify(UI.instance.mapview.myLastCoord,new Coord(100,100)));
+        //_pf_last_coord = _pf_centre;
+
+        MapView mw = UI.instance.mapview;
 		APXUtils._pf_clear();
 		/* Tiles */
 		for (int i = 0; i < _pf_dim; i++)
 			for (int j = 0; j < _pf_dim; j++) {
 				Coord cur = _pf_map2real(new Coord(i, j));
 				int type = mw.getTileFix(cur.div(_pf_tilesize));
-				_pf_map[i][j] = (type == 255 || type == 0) ? AStar.Constants.FULL_NON_PASSABLE
-						: AStar.Constants.TERRAIN;
+                int tertype = (type == 255 || type == 0) ? AStar.Constants.FULL_NON_PASSABLE : AStar.Constants.TERRAIN;
+                switch (type) {
+                    case 0:
+                    case 255:
+                        tertype = AStar.Constants.FULL_NON_PASSABLE;
+                        break;
+                    case 12:
+                        tertype = AStar.Constants.TERRAIN_C5;
+                        break;
+                    case 16:
+                    case 17:
+                    case 18:
+                        tertype = AStar.Constants.TERRAIN_C4;
+                        break;
+                    case 1:
+                        tertype = AStar.Constants.TERRAIN_C3;
+                        break;
+                    case 14:
+                    case 15:
+                    case 19:
+                    case 10:
+                    case 11:
+                    case 9:
+                    case 23:
+                    case 24:
+                    case 25:
+                    case 26:
+                        tertype = AStar.Constants.TERRAIN_C2;
+                        break;
+                    case 22:
+                    case 21:
+                    case 20:
+                    case 13:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                    case 7:
+                    case 8:
+                        tertype = AStar.Constants.TERRAIN_C1;
+                        break;
+                    default:
+                        tertype = AStar.Constants.TERRAIN;
+                        break;
+                }
+
+  /*
+                colors.put(0, new Color(0x3152a2));	//deep water
+                colors.put(1, new Color(0x4480c8));	//shallow water
+                colors.put(3, new Color(0xd85151));	//brick red
+                colors.put(4, new Color(0xcba920));	//brick yellow
+                colors.put(5, new Color(0x2a2a2a));	//brick black
+                colors.put(6, new Color(0x5ab2f8));	//brick blue
+                colors.put(7, new Color(0xe0e0e0));	//brick white
+                colors.put(8, new Color(160,160,160));	//stone paving
+                colors.put(9, new Color(200,200,200));	//plowed
+                colors.put(10, new Color(0x497937));	//coniferous forest
+                colors.put(11, new Color(0x60864f));	//broadleaf forest
+                colors.put(12, new Color(220,220,200));	//thicket
+                colors.put(13, new Color(0x468d37));	//grass
+                colors.put(14, new Color(0xac7664));	//heath
+                colors.put(15, new Color(0x999927));	//moor
+                colors.put(16, new Color(0x60ad8a));	//swamp 1
+                colors.put(17, new Color(0x3d6242));	//swamp 2
+                colors.put(18, new Color(0x5e6453));	//swamp 3
+                colors.put(19, new Color(0xa67936));	//dirt
+                colors.put(20, new Color(212,164,81));	//sand
+                colors.put(21, new Color(212,212,212));	//house
+                colors.put(22, new Color(85,85,85));	//house cellar
+                colors.put(23, new Color(90,90,90));	//mine entry
+                colors.put(24, new Color(80,80,80));	//mine
+                colors.put(25, new Color(112,116,112));	//cave
+                colors.put(26, new Color(125,125,125));	//mountain
+                colors.put(255, new Color(0,0,0));	//void
+*/
+                _pf_map[i][j] = tertype;
 			}
 		/* Objects */
 		String name;
@@ -276,7 +381,12 @@ public class APXUtils {
 				name = gob.resname();
 				if (name == null)
 					continue;
-				Drawable d = gob.getattr(Drawable.class);
+                /*
+                _pf_mark_area(gob.position(),
+                        gob.position().add(new Coord(2, 2)));
+                continue;
+                */
+
 				if (name.contains("gfx/tiles/")
 						|| name.contains("gfx/terobjs/items/")
 						|| name.contains("gfx/terobjs/plants/")
@@ -288,6 +398,42 @@ public class APXUtils {
 							gob.position().add(new Coord(2, 2)));
 					continue;
 				}
+                /*
+                if (name.contains("gfx/terobjs/ridges/grass/ss")) {
+                    _pf_mark_area(gob.position(),
+                            gob.position().add(new Coord(2, 2)));
+                    continue;
+                }
+                */
+
+                Coord pos = gob.position();
+                Coord bc, bs;
+                Resource.Neg neg = gob.getneg();
+                if(neg!=null) {
+                    bc = neg.bc;
+                    bs = neg.bs;
+                } else {
+                    bc = new Coord(0,0);
+                    bs = new Coord(0,0);
+                }
+
+                Coord c1;
+                Coord c2;
+
+                if ((bs.x > 0) && (bs.y > 0)) {
+                    c1 = pos.add(bc);
+                    c2 = c1.add(bs);
+                } else {
+                    c1 = pos;
+                    c2 = pos.add(new Coord(2, 2));
+                }
+                _pf_mark_area(c1, c2);
+
+                if (name.contains("gfx/arch/gates/"))
+                    if(gob.GetBlob(0)==2) _pf_unmark_area(c1, c2);
+
+                /*
+				Drawable d = gob.getattr(Drawable.class);
 				Resource.Neg neg;
 				if (d instanceof ResDrawable) {
 					ResDrawable rd = (ResDrawable) d;
@@ -304,6 +450,8 @@ public class APXUtils {
 				} else {
 					continue;
 				}
+
+
 				if ((neg.bs.x > 0) && (neg.bs.y > 0)) {
 					Coord c1 = gob.position().add(neg.bc);
 					Coord c2 = c1.add(neg.bs);
@@ -312,6 +460,8 @@ public class APXUtils {
 					_pf_mark_area(gob.position(),
 							gob.position().add(new Coord(2, 2)));
 				}
+				*/
+
 			}
 		}
 	}
@@ -325,33 +475,45 @@ public class APXUtils {
 
 	/* Logins save */
 
-	public static class AccountInfo implements Serializable {
-		private static final long serialVersionUID = -8211372962031061806L;
-		public String login;
-		public String password;
-		public byte[] token;
+    public static class AccountInfo implements Serializable {
+        private static final long serialVersionUID = -8211372962031061806L;
+        public String accname;
+        public String login;
+        public String password;
+        public byte[] token;
 
-		public AccountInfo(String l, String p, byte[] t) {
-			login = l;
-			password = p;
-			token = t;
-		}
+        public AccountInfo(String l, String p, String a) {
+            accname = a;
+            login = l;
+            password = p;
+            token = null;
+        }
 
-		public AccountInfo(String l, String p) {
-			this(l, p, null);
-		}
-	}
+        public AccountInfo(String l, String p, byte[] t) {
+            accname = l;
+            login = l;
+            password = p;
+            token = t;
+        }
 
-	public static HashMap<String, AccountInfo> accounts;
+        public AccountInfo(String l, String p) {
+            accname = l;
+            login = l;
+            password = p;
+            token = null;
+        }
+    }
 
-	public static void _sa_add_data(Object[] data) {
-		// Object[] { user.text, pass.text, savepass.a }
-		String login = (String) data[0];
-		if (!accounts.containsKey(login)) {
-			accounts.put(login, new AccountInfo(login, (String) data[1]));
-			_sa_save_data();
-		}
-	}
+    public static HashMap<String, AccountInfo> accounts;
+
+    public static void _sa_add_data(Object[] data) {
+        // Object[] { user.text, pass.text, savepass.a }
+        String login = (String) data[0];
+        if (!accounts.containsKey(login)) {
+            accounts.put(login, new AccountInfo(login, (String) data[1], (String) data[3]));
+            _sa_save_data();
+        }
+    }
 
 	public static void _sa_save_data() {
 		try {
@@ -782,7 +944,8 @@ public class APXUtils {
 				}
 				exinfo.append(String.format("TITLE:%s\n", MainFrame.TITLE));
 				exinfo.append(String.format("Exception:%s\n", ex.toString()));
-				getHTML("http://unionclient.ru/exhandler.php?mac=" + getMACAdress() + "&info=" + exinfo.toString());
+				//getHTML("http://unionclient.ru/exhandler.php?mac=" + getMACAdress() + "&info=" + exinfo.toString());
+                System.out.println(exinfo.toString());
 			}
 		}).run();
 	}

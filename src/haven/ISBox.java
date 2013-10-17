@@ -36,6 +36,7 @@ public class ISBox extends Widget implements DTarget {
     public String resName; //Kerri: name of resource at box
     public String toolTip; //Kerri: resource in game tooltip
     public String boxValues; //Kerri: values a/b/c in box
+    public int resa, resb, resc;
     static {
         lf = new Text.Foundry(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 18), java.awt.Color.WHITE);
         lf.aa = true;
@@ -91,7 +92,31 @@ public class ISBox extends Widget implements DTarget {
     {
     	wdgmsg("xfer");
     }
-    
+
+    public void transferAll()
+    {
+        /*
+        for(int i = 0; i < 56; i++)
+            wdgmsg("xfer");
+        */
+        //System.out.println(boxValues);
+        if(boxValues != null)
+        {
+            String[] sList = boxValues.split("/");
+            int current = Integer.parseInt(sList[1]);
+            //big container may cause lag effect
+            //so 'i' now between 0 and 56
+            //56 - maximum inventory that u can have
+            if(current < 56)
+                for(int i = 0; i < current; i++)
+                    wdgmsg("xfer");
+            else
+                for(int i = 0; i < 56; i++)
+                    wdgmsg("xfer");
+        }
+
+    }
+
     public boolean mousedown(Coord c, int button) {
         if(button == 1) {
             if(ui.modshift)

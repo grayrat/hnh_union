@@ -29,7 +29,23 @@ public class JSItem {
 	public boolean isCurio() {
 		return wdg().curio_stat != null;
 	}
-	
+
+    /**
+     * Проверяет предмет на принадлежность к еде
+     * @return true если предмет еда (содержится в fep.conf)
+     */
+    public boolean isFood() {
+        return wdg().FEP != null;
+    }
+
+    /**
+     * Проверяет предмет на принадлежность к еде
+     * @return true если предмет еда (содержится в fep.conf)
+     */
+    public String FEP() {
+        return wdg().FEP;
+    }
+
 	/**
 	 * Возвращает аттеншн курьеза
 	 * @return attention или -1
@@ -200,6 +216,20 @@ public class JSItem {
 	public void transferSuchAll() {
 		wdg().wdgmsg("transfer_such_all", wdg().GetResName());
 	}
+
+    /**
+     * Перемещает все предметы данного типа в соседний инвентарь.
+     */
+    public void transferSuchAllQl() {
+        wdg().wdgmsg("transfer_such_all_ql", wdg().GetResName());
+    }
+
+    /**
+     * Перемещает все предметы данного типа в соседний инвентарь.
+     */
+    public void transferSuchAllQldesc() {
+        wdg().wdgmsg("transfer_such_all_qldesc", wdg().GetResName());
+    }
 
 	/**
 	 * Выбрасывает из инвентаря все предметы даноого типа.

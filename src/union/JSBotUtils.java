@@ -1,16 +1,19 @@
 package union;
 
-import static haven.MCache.tileSize;
 import haven.*;
 import haven.BuddyWnd.Buddy;
+import union.jsbot.*;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
-
-import union.jsbot.*;
+import static haven.MCache.tileSize;
 
 public class JSBotUtils {
 	// variables here
@@ -34,6 +37,7 @@ public class JSBotUtils {
 	public static int playerHappy = 0;
 	public static int playerTowards = 0;
 	public static boolean haveAggro = false;
+    public static IMeter currHun;
 	/* End of vars for scripts */
 	public static boolean showDebugToConsole = false; // for debugging, toggles
 														// by Shift+F11
@@ -117,6 +121,7 @@ public class JSBotUtils {
 			if (meter.name.contains("hngr")) {
 				String[] buf = meter_info.split("%");
 				playerHungry = Integer.parseInt(buf[1]);
+                currHun = meter;
 				continue;
 			}
 			if (meter.name.contains("happy")) {
@@ -158,7 +163,7 @@ public class JSBotUtils {
 		Widget root = UI.instance.root;
 		for (Widget wdg = root.child; wdg != null; wdg = wdg.next) {
 			if (wdg instanceof Window)
-				if (((Window) wdg).cap.text.equals(name)) {
+				if (((Window) wdg).cap.text.equals(name)||name.equals("")) {
 					windows.add(new JSWindow(UI.instance.getId(wdg)));
 				}
 		}
@@ -256,7 +261,11 @@ public class JSBotUtils {
 	}
 	
 	public static int absTileType(int x, int y) {
-		return UI.instance.mapview.getTileFix(new Coord(x, y));
+        int tileType = 0;
+        synchronized (UI.instance.mapview) {
+            tileType = UI.instance.mapview.getTileFix(new Coord(x, y));
+        }
+		return tileType;
 	}
 
 	// clicks at object with modifier
@@ -294,6 +303,16 @@ public class JSBotUtils {
 			UI.instance.mapview.map_abs_click(x, y, btn, mod);
 	}
 
+    public static void mapAddMovequene(int x, int y) {
+        if (UI.instance.mapview != null)
+            UI.instance.mapview.map_add_movequene(x, y);
+    }
+
+    public static void mapClearMovequene() {
+        if (UI.instance.mapview != null)
+            UI.instance.mapview.map_clear_movequene();
+    }
+
 	// moves to object with given offset from object
 	public static void mapMove(int objid, int x, int y) {
 		if (UI.instance.mapview != null)
@@ -324,6 +343,12 @@ public class JSBotUtils {
 			UI.instance.mapview.map_place(x, y, btn, mod);
 	}
 
+    // places bUI.instanceld at given coords (points)
+    public static void mapPlaceAbs(int x, int y, int btn, int mod) {
+        if (UI.instance.mapview != null)
+            UI.instance.mapview.map_place_abs(x, y, btn, mod);
+    }
+
 	// block operates with players coords
 	public static Coord MyCoord() {
 		Gob pl;
@@ -341,6 +366,36 @@ public class JSBotUtils {
 	public static int myCoordY() {
 		return MyCoord().y;
 	}
+
+    public static Coord MyCoordMMap() {
+        Coord mC = MyCoord();
+        mC = mC.div(tileSize);
+        Coord mmsize = new Coord(100, 100);
+        mC = mC.div(mmsize);
+        Coord msc = MiniMap.mappingStartPoint;
+        return mC.sub(msc);
+    }
+
+    public static Coord MyCoordOnMMapT() {
+        Coord mC = MyCoord();
+        Coord bmm  = mC.div(tileSize).div(100).mul(100).mul(tileSize);
+        return mC.sub(bmm).div(tileSize);
+    }
+
+    public static Coord MyCoordOnMMap() {
+        Coord mC = MyCoord();
+        Coord bmm  = mC.div(tileSize).div(100).mul(100).mul(tileSize);
+        return mC.sub(bmm);
+    }
+
+    public static void SaveMarker(Coord mp, Coord mrk, String name, String str) throws IOException {
+        String fileName = "marker_" + mp.x + "_" + mp.y  + "_" + name  + "_" + mrk.x  + "_" + mrk.y + ".txt";
+        File markerfile = new File("map/" + Utils.sessdate(MiniMap.mappingSession)  + "/" + fileName );
+        BufferedWriter markerwriter = new BufferedWriter(new FileWriter(markerfile));
+        markerwriter.write( str );
+        markerwriter.newLine();
+        markerwriter.flush();
+    }
 
 	// block operates with popup menu
 	public static void selectPopupMenuOpt(String OptName) {
@@ -800,7 +855,8 @@ public class JSBotUtils {
 	public static void isBoxAct(String wnd, int pos, int type) {
 		// 0 take
 		// 1 transfer
-		if (type != 0 && type != 1)
+        // 2 transfer all
+		if (type < 0 || type > 2)
 			return;
 		int bPos = 0;
 		Widget root = UI.instance.root;
@@ -817,6 +873,8 @@ public class JSBotUtils {
 										box.takeOne();
 									else if (type == 1)
 										box.transferOne();
+                                    else if (type == 2)
+                                        box.transferAll();
 									else
 										return;
 								}// box that u need by count

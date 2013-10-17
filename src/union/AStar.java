@@ -85,7 +85,7 @@ public class AStar {
 	}
 
 	public class Constants {
-		public static final int NOTHING = -1, EMPTY = 0, TERRAIN = 1, FULL_NON_PASSABLE = 2, DIAGONAL_NON_PASSABLE = 3, START = 4, FINISH = 5,
+		public static final int NOTHING = -1, EMPTY = 0, TERRAIN = 1, TERRAIN_C1 = 2, TERRAIN_C2 = 3,TERRAIN_C3 = 4,TERRAIN_C4 = 5,TERRAIN_C5 = 6, FULL_NON_PASSABLE = 7, DIAGONAL_NON_PASSABLE = 8, START = 9, FINISH = 10,
 				NUMCOLORS = FINISH + 1;
 	}
 
@@ -99,9 +99,14 @@ public class AStar {
 
 	public AStar(int[][] grid, Location startLoc, Location goalLoc) {
 		this.grid = grid;
-		this.costs = new int[6];
+		this.costs = new int[11];
 		costs[Constants.EMPTY] = 1;
 		costs[Constants.TERRAIN] = 5;
+        costs[Constants.TERRAIN_C1] = 5;
+        costs[Constants.TERRAIN_C2] = 10;
+        costs[Constants.TERRAIN_C3] = 15;
+        costs[Constants.TERRAIN_C4] = 20;
+        costs[Constants.TERRAIN_C5] = 25;
 		costs[Constants.DIAGONAL_NON_PASSABLE] = Constants.NOTHING;
 		costs[Constants.FULL_NON_PASSABLE] = Constants.NOTHING;
 		costs[Constants.START] = 1;
@@ -151,8 +156,11 @@ public class AStar {
 		open.put(startNode.location, startNode);
 
 		// process the list until success or failure
+        int maxI=0;
 		while (openQ.size() > 0) {
-
+            maxI++;
+            if (maxI > 10000) return null;
+            //System.out.println(maxI);
 			Node node = openQ.pop();
 			open.remove(node.location);
 

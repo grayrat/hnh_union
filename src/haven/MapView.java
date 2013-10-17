@@ -26,31 +26,23 @@
 
 package haven;
 
-import static haven.MCache.cmaps;
-import static haven.MCache.tileSize;
 import haven.INIFile.Pair;
 import haven.MCache.Grid;
 import haven.MCache.Overlay;
 import haven.Resource.Tile;
-import haven.Coord;
-import java.awt.Color;
+import union.APXUtils;
+import union.JSBotUtils;
+import union.KerriUtils;
+
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
 
-import union.APXUtils;
-import union.KerriUtils;
-import union.JSBotUtils;
+import static haven.MCache.cmaps;
+import static haven.MCache.tileSize;
 
 public class MapView extends Widget implements DTarget, Console.Directory {
 	static Color[] olc = new Color[31];
@@ -89,6 +81,8 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 	public boolean player_moving = false;
 	public boolean objectSelecting = false; //used for JS selectObject
 	public boolean waitForSelect = false; 	//used for JS selectObject
+    public boolean tileSelecting = false; //used for JS selectTile
+    public Coord tileUnderMouse = null;			//used for JS selectTile
 	public Gob objectUnderMouse = null;   	//current object under mouse (hover)
 	public Coord myLastCoord;				//my last coord
 	//private ArrayList<Integer> ignoredObjects = new ArrayList<Integer>();
@@ -682,6 +676,12 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 			return true;
 		}
 		Coord mc = s2m(c.add(viewoffset(sz, this.mc).inv()));
+        if(tileSelecting)
+        {
+            tileUnderMouse = tilify(mc);
+            tileSelecting = false;
+            return true;
+        }
 		if (grab != null) {
 			try {
 				grab.mmousedown(mc, button);
@@ -845,14 +845,27 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 		c = c.add(tileSize.div(2));
 		return (c);
 	}
-	
-	public static Coord tilefy_ns(Coord c) {
+
+    public static Coord tilify(Coord c, Coord custTileSize) {
+        c = c.div(custTileSize);
+        c = c.mul(custTileSize);
+        c = c.add(custTileSize.div(2));
+        return (c);
+    }
+
+    public static Coord tilefy_ns(Coord c) {
 		c = c.div(tileSize);
 		c = c.mul(tileSize);
 		return (c);
 	}
 
-	private void unflashol() {
+    public static Coord tilefy_ns(Coord c, Coord custTileSize) {
+        c = c.div(custTileSize);
+        c = c.mul(custTileSize);
+        return (c);
+    }
+
+    private void unflashol() {
 		for (int i = 0; i < visol.length; i++) {
 			if ((olflash & (1 << i)) != 0)
 				visol[i]--;
@@ -1021,6 +1034,22 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 		}
 	}
 
+    public void map_place_abs(int x, int y, int btn, int mod) {
+        if (plob != null) {
+            Gob pgob;
+            synchronized (glob.oc) {
+                pgob = glob.oc.getgob(playergob);
+            }
+            if (pgob == null)
+                return;
+            //Coord mc = tilify(pgob.position());
+            //Coord offset = new Coord(x, y).mul(tileSize);
+            //mc = mc.add(offset);
+            Coord mc = new Coord(x, y);
+            wdgmsg("place", mc, btn, mod);
+        }
+    }
+
 	public void map_click(int x, int y, int btn, int mod) {
 		Gob pgob;
 		synchronized (glob.oc) {
@@ -1052,7 +1081,21 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 		wdgmsg("click", JSBotUtils.getCenterScreenCoord(), mc, btn, mod);
 	}
 
-	public void map_interact_click(int x, int y, int mod) {
+    public void map_add_movequene(int x, int y) {
+        Coord mc = new Coord(x, y);
+        synchronized (glob.oc) {
+            glob.oc.enqueue(mc);
+            glob.oc.checkqueue();
+        }
+    }
+
+    public void map_clear_movequene() {
+        synchronized (glob.oc) {
+            glob.oc.movequeue.clear();
+        }
+    }
+
+    public void map_interact_click(int x, int y, int mod) {
 		Gob pgob;
 		synchronized (glob.oc) {
 			pgob = glob.oc.getgob(playergob);
@@ -1408,8 +1451,10 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 			curf = prof.new Frame();
 		//Kerri
 		Coord mouseTilePos = Coord.z;
-		if (mousepos != null && Config.assign_to_tile)
+		if (mousepos != null && (Config.assign_to_tile || tileSelecting))
 			mouseTilePos = mouseAtTile.div(tileSize);
+        //if (mousepos != null && tileSelecting)
+        //    mouseTilePos = mouseAtTile.div(tileSize);
 		stw = (tileSize.x * 4) - 2;
 		sth = tileSize.y * 2;
 		oc = viewoffset(sz, mc);
@@ -1427,9 +1472,12 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 					if (!Config.newclaim) {
 						drawol(g, ctc, sc);
 					}
-					if (mousepos != null && Config.assign_to_tile)
+					if (mousepos != null && (Config.assign_to_tile || tileSelecting))
 						if (mouseTilePos.y == ctc.y && mouseTilePos.x == ctc.x)
 							drawTileSelection(g, ctc, sc);
+                    //if (mousepos != null && tileSelecting)
+                    //    if (mouseTilePos.y == ctc.y && mouseTilePos.x == ctc.x)
+                    //        drawJSRect(g, ctc, sc);
 				}
 			}
 		}//for
@@ -1460,7 +1508,7 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 			for (int vx = 0; vx < dim; vx++) {
 				for (int vy = 0; vy < dim; vy++) {
 					int type = map[vx][vy];
-					Color qcolor = type == APXUtils.PF_MAP_CELL_FREE ? Color.green : Color.red;
+					Color qcolor = type >= APXUtils.PF_MAP_CELL_NOT_PASSABLE ? Color.red : new Color(0,128,0,128);
 					qcoord = APXUtils._pf_map2real_stored(new Coord(vx, vy));
 					drawQuad(g, m2s(qcoord.sub(MCache.tileSize.div(2))).add(oc), qcolor);
 				}
@@ -2160,6 +2208,7 @@ public class MapView extends Widget implements DTarget, Console.Directory {
 		if (!draw_pf_map) {
 			draw_pf_map = true;
 			APXUtils._pf_compute(0);
+            //APXUtils._pf_print_map();
 		} else {
 			draw_pf_map = false;
 		}

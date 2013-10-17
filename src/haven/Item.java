@@ -273,7 +273,7 @@ public class Item extends Widget implements DTarget {
 	}
 
 	public double qmult;
-	private String FEP = null;
+	public String FEP = null;
 
 	private void calcFEP() {
 		Map<String, Float> fep;

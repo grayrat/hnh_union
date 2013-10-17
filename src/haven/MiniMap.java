@@ -26,40 +26,29 @@
 
 package haven;
 
-import static haven.MCache.cmaps;
-import static haven.MCache.tileSize;
 import haven.INIFile.Pair;
 import haven.MCache.Grid;
+import union.KerriUtils;
 
-import java.awt.Color;
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Writer;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.WeakHashMap;
+import java.util.*;
 
-import javax.imageio.ImageIO;
-
-import union.KerriUtils;
+import static haven.MCache.cmaps;
+import static haven.MCache.tileSize;
 
 public class MiniMap extends Widget {
 	static Map<String, Tex> grids = new WeakHashMap<String, Tex>();
 	static Set<String> loading = new HashSet<String>();
 	static Loader loader = new Loader();
-	static Coord mappingStartPoint = null;
-	static long mappingSession = 0;
+	static public Coord mappingStartPoint = null;
+	static public long mappingSession = 0;
 	static Map<String, Coord> gridsHashes = new TreeMap<String, Coord>();
 	static Map<Coord, String> coordHashes = new TreeMap<Coord, String>();
 	static Map<Coord, Tex> caveTex = new TreeMap<Coord, Tex>();

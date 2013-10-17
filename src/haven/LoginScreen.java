@@ -26,15 +26,10 @@
 
 package haven;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-
 import union.APXUtils;
 import union.APXUtils.AccountInfo;
+
+import java.util.*;
 
 public class LoginScreen extends Widget {
 	Login cur;
@@ -90,7 +85,7 @@ public class LoginScreen extends Widget {
 			if(j == 20) j = 0;
 			APXUtils.AccountInfo info = iterator.next();
 			Button btn = new Button(Coord.z.add(0 + 140 * (i/20), j * 30), 100, instance,
-					info.login) {
+					info.accname) {
 				@Override
 				public void click() {
 					APXUtils.AccountInfo info = (APXUtils.AccountInfo) Info;
@@ -156,19 +151,22 @@ public class LoginScreen extends Widget {
 	}
 
 	private class Pwbox extends Login {
-		TextEntry user, pass;
+		TextEntry nameacc, user, pass;
 		CheckBox savepass;
 
 		private Pwbox(String username, boolean save) {
-			super(new Coord(620, 310), new Coord(150, 150), LoginScreen.this);
+			super(new Coord(620, 250), new Coord(150, 150), LoginScreen.this);
 			setfocustab(true);
-			new Label(new Coord(0, 0), this, "User name", textf);
-			user = new TextEntry(new Coord(0, 20), new Coord(150, 20), this,
+            new Label(new Coord(0, 0), this, "Acc name", textf);
+            nameacc = new TextEntry(new Coord(0, 20), new Coord(150, 20), this,
+                    username);
+			new Label(new Coord(0, 60), this, "User name", textf);
+			user = new TextEntry(new Coord(0, 80), new Coord(150, 20), this,
 					username);
-			new Label(new Coord(0, 60), this, "Password", textf);
-			pass = new TextEntry(new Coord(0, 80), new Coord(150, 20), this, "");
+			new Label(new Coord(0, 120), this, "Password", textf);
+			pass = new TextEntry(new Coord(0, 140), new Coord(150, 20), this, "");
 			pass.pw = true;
-			savepass = new CheckBox(new Coord(0, 110), this, "Remember me");
+			savepass = new CheckBox(new Coord(0, 170), this, "Remember me");
 			savepass.a = save;
 			if (user.text.equals(""))
 				setfocus(user);
@@ -180,7 +178,7 @@ public class LoginScreen extends Widget {
 		}
 
 		Object[] data() {
-			Object[] data = new Object[] { user.text, pass.text, savepass.a };
+			Object[] data = new Object[] { user.text, pass.text, savepass.a, nameacc.text };
 			APXUtils._sa_add_data(data);
 			return data;
 		}
